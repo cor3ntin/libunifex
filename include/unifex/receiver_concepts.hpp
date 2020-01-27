@@ -41,6 +41,25 @@ inline constexpr struct set_value_cpo {
   }
 } set_value{};
 
+inline constexpr struct set_next_cpo {
+  template <typename Receiver, typename... Values>
+  friend auto
+  tag_invoke(set_next_cpo, Receiver&& r, Values&&... values) noexcept(
+      noexcept(static_cast<Receiver&&>(r).set_next((Values &&) values...)))
+      -> decltype(static_cast<Receiver&&>(r).set_next((Values &&) values...)) {
+    return static_cast<Receiver&&>(r).set_next((Values &&) values...);
+  }
+
+  template <typename Receiver, typename... Values>
+  auto operator()(Receiver&& r, Values&&... values) const noexcept(
+      noexcept(tag_invoke(*this, (Receiver &&) r, (Values &&) values...)))
+      -> tag_invoke_result_t<set_next_cpo, Receiver, Values...> {
+    static_assert(
+      std::is_void_v<tag_invoke_result_t<set_next_cpo, Receiver, Values...>>);
+    return tag_invoke(*this, (Receiver &&) r, (Values &&) values...);
+  }
+} set_next{};
+
 inline constexpr struct set_error_cpo {
   template <typename Receiver, typename Error>
   friend auto tag_invoke(set_error_cpo, Receiver&& r, Error&& e) noexcept
@@ -89,6 +108,7 @@ template <typename T>
 constexpr bool is_receiver_cpo_v = is_one_of_v<
     std::remove_cvref_t<T>,
     set_value_cpo,
+    set_next_cpo,
     set_error_cpo,
     set_done_cpo>;
 
